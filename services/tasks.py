@@ -263,35 +263,47 @@ def generate_receipt_image(op_type: str, amount_str: str, client_str: str, date_
     w, h = 800, 520
 
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    search_dirs = ['.', base_dir, '/home/container', os.path.join(base_dir, 'banners')]
+    search_dirs = [
+        '.', base_dir, '/home/container',
+        os.path.join(base_dir, 'banners'), os.path.join(base_dir, 'images'), os.path.join(base_dir, 'photos'),
+        '/home/container/banners', '/home/container/images', '/home/container/photos'
+    ]
     valid_exts = ('.png', '.jpg', '.jpeg', '.webp')
-    found_bgs = set()
+    payout_top_bgs = []
+    found_bgs = []
+    seen = set()
 
     for d in search_dirs:
         if os.path.isdir(d):
             try:
-                for fn in os.listdir(d):
+                for fn in sorted(os.listdir(d)):
                     fn_lower = fn.lower()
                     if fn_lower.endswith(valid_exts):
-                        # Исключаем баннер личного кабинета (banner.png)
-                        if fn_lower.startswith('banner.') or fn_lower == 'banner.png':
+                        if fn_lower in ('banner.png', 'nemos_users.png') or fn_lower.startswith('receipt_') or fn_lower.startswith('review_'):
                             continue
-                        if fn_lower.startswith(('gemini_generated_image', 'banner1', 'banner2', 'banner3', 'bg')):
-                            found_bgs.add(os.path.join(d, fn))
+                        full_p = os.path.abspath(os.path.join(d, fn))
+                        if full_p in seen:
+                            continue
+                        seen.add(full_p)
+
+                        # Точное попадание в 3 фото выплат (фото1, фото2, фото3, photo1, photo2, photo3)
+                        if any(k in fn_lower for k in [
+                            'фото1', 'фото2', 'фото3', 'фото 1', 'фото 2', 'фото 3',
+                            'photo1', 'photo2', 'photo3', 'photo 1', 'photo 2', 'photo 3',
+                            'фото', 'photo', 'выплат', 'pay'
+                        ]):
+                            payout_top_bgs.append(full_p)
+                        else:
+                            found_bgs.append(full_p)
             except Exception:
                 pass
 
-    for d in search_dirs:
-        for prefix in ['banner1', 'banner2', 'banner3', 'bg1', 'bg2', 'bg3']:
-            for ext in valid_exts:
-                candidate = os.path.join(d, prefix + ext)
-                if os.path.isfile(candidate):
-                    found_bgs.add(candidate)
+    all_candidates = payout_top_bgs if payout_top_bgs else found_bgs
 
     img = None
-    if found_bgs:
+    if all_candidates:
         try:
-            chosen_bg = random.choice(list(found_bgs))
+            chosen_bg = random.choice(all_candidates)
             with Image.open(chosen_bg) as bg_img:
                 bg_img = bg_img.convert('RGB')
                 target_ratio = w / h

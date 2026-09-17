@@ -116,11 +116,10 @@ async def send_or_edit_panel_message(call: types.CallbackQuery, text: str, reply
         except Exception:
             pass
 
-BOT_VERSION = "v3.1.2-FixImportCrash"
-CURRENT_CHANGELOG = """• 🚑 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Восстановлены функции базы данных add_tx, execute_p2p_transfer, log_admin_action (устранен сбой ImportError при старте)
-• 👥 Реферальный бонус возвращен: начисляется сразу за подписку на канал (без условия депозита)
-• 🧹 Из админ-панели полностью удалена старая кнопка «Обновить из облака»
-• 🛡 Все улучшения безопасности и скорости v3.1.0 сохранены в полном объеме""".strip()
+BOT_VERSION = "v3.1.4-PayoutPhoto123"
+CURRENT_CHANGELOG = """• 📸 Фото выплат: добавлено распознавание фото1, фото2, фото3 (photo1, photo2, photo3) для генерации стильных чеков при выплате
+• 📊 Таблица игроков (PNG): числа отформатированы через запятую (xxx,xxx$)
+• 🛡 Исправлены все импорты и восстановлена стабильная работа бота""".strip()
 BOT_START_TIME = datetime.now()
 
 def get_admin_panel_text() -> str:
@@ -433,11 +432,20 @@ def generate_users_table_png_bytes(rows, title="Nemos Trade — Пользова
         status_txt = "Забанен" if r[6] else "Активен"
         status_col = (255, 100, 100) if r[6] else (100, 255, 150)
 
+        def _fmt_money(val) -> str:
+            try:
+                v = float(val)
+                if v % 1 == 0:
+                    return f"{int(v):,}$"
+                return f"{v:,.2f}$"
+            except Exception:
+                return f"{val}$"
+
         draw.text((cols[0][1] + 8, y + 10), str(r[0]), fill=(200, 210, 225), font=font_cell)
         draw.text((cols[1][1] + 8, y + 10), u_tag, fill=(100, 200, 255), font=font_cell)
-        draw.text((cols[2][1] + 8, y + 10), f"{r[2]:.2f}$", fill=(100, 255, 150), font=font_cell)
-        draw.text((cols[3][1] + 8, y + 10), f"{r[3]:.2f}$", fill=(255, 220, 100), font=font_cell)
-        draw.text((cols[4][1] + 8, y + 10), f"{r[4]:.2f}$", fill=(255, 160, 120), font=font_cell)
+        draw.text((cols[2][1] + 8, y + 10), _fmt_money(r[2]), fill=(100, 255, 150), font=font_cell)
+        draw.text((cols[3][1] + 8, y + 10), _fmt_money(r[3]), fill=(255, 220, 100), font=font_cell)
+        draw.text((cols[4][1] + 8, y + 10), _fmt_money(r[4]), fill=(255, 160, 120), font=font_cell)
         draw.text((cols[5][1] + 8, y + 10), ref_txt, fill=(160, 175, 195), font=font_cell)
         draw.text((cols[6][1] + 8, y + 10), status_txt, fill=status_col, font=font_cell)
         y += row_height
