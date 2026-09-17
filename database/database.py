@@ -870,7 +870,7 @@ def calculate_mines_multiplier(mines_count: int, opened_count: int) -> float:
     prob = 1.0
     for i in range(opened_count):
         prob *= (safe_cells - i) / (total_cells - i)
-    raw_mult = 0.88 / prob
+    raw_mult = 0.80 / prob
     return max(1.05, round(raw_mult, 2))
 
 async def get_user_active_mines_game(user_id: int) -> Optional[dict]:
