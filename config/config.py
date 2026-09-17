@@ -207,6 +207,7 @@ def parse_amount(text: str, max_val: Optional[float] = None) -> float:
         raise ValueError("Неверный формат суммы")
 MIN_MINES_BET = 50_000.0
 MAX_MINES_BET = 5_000_000.0
+MINES_RTP = float(load_env_val("MINES_RTP", "0.80"))  # 80% RTP
 
 def fmt_mult(val) -> str:
     """Форматирование множителей в виде 1.хх с заменой цифры 0 на заглавную букву O."""
