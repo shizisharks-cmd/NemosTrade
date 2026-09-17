@@ -10,7 +10,7 @@ from typing import Dict, Any, Tuple, Optional, List
 from aiogram import Bot
 from config.config import (
     DB_FILE, OWNER_ID, DAILY_RATE, MIN_WITHDRAW, MIN_REINVEST, EFFECT_CONFETTI_ID,
-    REFERRAL_BONUS_INVITER, REFERRAL_BONUS_INVITED, MIN_MINES_BET, MAX_MINES_BET, MIN_DEPOSIT, MINES_RTP,
+    REFERRAL_BONUS_INVITER, REFERRAL_BONUS_INVITED, MIN_MINES_BET, MAX_MINES_BET, MIN_DEPOSIT,
     get_now, get_now_iso, format_bold_num, format_raw_num, EMOJIS
 )
 
@@ -870,9 +870,8 @@ def calculate_mines_multiplier(mines_count: int, opened_count: int) -> float:
     prob = 1.0
     for i in range(opened_count):
         prob *= (safe_cells - i) / (total_cells - i)
-    raw_mult = MINES_RTP / prob
-    min_mult = 1.02 + opened_count * 0.03
-    return max(round(min_mult, 2), round(raw_mult, 2))
+    raw_mult = 0.88 / prob
+    return max(1.05, round(raw_mult, 2))
 
 async def get_user_active_mines_game(user_id: int) -> Optional[dict]:
     async with get_db_connection() as db:

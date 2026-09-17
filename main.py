@@ -16,8 +16,7 @@ from services.tasks import (
     inactivity_reminder_loop,
     cache_cleanup_loop,
     auto_archive_and_cleanup_loop,
-    auto_cancel_expired_pvp_lobbies_loop,
-    github_auto_update_loop
+    auto_cancel_expired_pvp_lobbies_loop
 )
 
 logging.basicConfig(
@@ -117,8 +116,7 @@ async def main():
         asyncio.create_task(owner_morning_cash_digest_loop(bot)),
         asyncio.create_task(inactivity_reminder_loop(bot)),
         asyncio.create_task(auto_cancel_expired_pvp_lobbies_loop()),
-        asyncio.create_task(auto_archive_and_cleanup_loop()),
-        asyncio.create_task(github_auto_update_loop(bot))
+        asyncio.create_task(auto_archive_and_cleanup_loop())
     ]
     
     # Проверка флага уведомления об успешном обновлении

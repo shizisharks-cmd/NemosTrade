@@ -42,11 +42,9 @@ def get_admin_panel_kb(uid: int, maint_mode: bool, frozen_mode: bool):
     kb = [
         [InlineKeyboardButton(text="📊 Финансы и касса", callback_data="adm_sec_finance"), InlineKeyboardButton(text="👥 Пользователи", callback_data="adm_sec_users")],
         [InlineKeyboardButton(text="⚙️ Управление и игры", callback_data="adm_sec_control"), InlineKeyboardButton(text="👑 Команда и логи", callback_data="adm_sec_team")],
-        [InlineKeyboardButton(text="💾 Система и данные", callback_data="adm_sec_system")]
+        [InlineKeyboardButton(text="💾 Система и данные", callback_data="adm_sec_system")],
+        [InlineKeyboardButton(text="❌ Закрыть панель", callback_data="adm_btn_close")]
     ]
-    if uid == OWNER_ID:
-        kb.append([InlineKeyboardButton(text="🔄 Обновить с GitHub (1 клик)", callback_data="adm_btn_git_update")])
-    kb.append([InlineKeyboardButton(text="❌ Закрыть панель", callback_data="adm_btn_close")])
     return InlineKeyboardMarkup(inline_keyboard=kb)
 
 def get_sec_finance_kb():
@@ -118,10 +116,10 @@ async def send_or_edit_panel_message(call: types.CallbackQuery, text: str, reply
         except Exception:
             pass
 
-BOT_VERSION = "v3.2.0-AutoDeploy"
-CURRENT_CHANGELOG = """• 🚀 Auto-Deploy: бот автоматически подтягивает коммиты с GitHub и перезапускается без нажатия кнопок
-• 💣 Игра «Минёр»: снижен базовый RTP до 80% (скорректированы коэффициенты в пользу кассы)
-• 📈 Плавная прогрессия множителей без просадок на начальных ходах""".strip()
+BOT_VERSION = "v3.1.4-PayoutPhoto123"
+CURRENT_CHANGELOG = """• 📸 Фото выплат: добавлено распознавание фото1, фото2, фото3 (photo1, photo2, photo3) для генерации стильных чеков при выплате
+• 📊 Таблица игроков (PNG): числа отформатированы через запятую (xxx,xxx$)
+• 🛡 Исправлены все импорты и восстановлена стабильная работа бота""".strip()
 BOT_START_TIME = datetime.now()
 
 def get_admin_panel_text() -> str:
@@ -2175,13 +2173,17 @@ async def handle_owner_update_document(msg: types.Message, bot: Bot, state: Opti
         [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_update")]
     ])
 
-    msg_parts = [
-        f"📦 <b>Обнаружен {type_title}:</b> <code>{html.escape(file_name)}</code>",
-        f"📊 <b>Размер:</b> <code>{round(doc.file_size / 1024, 1)} КБ</code>",
-        "━━━━━━━━━━━━━━━━━━",
-        "<b>Применить обновление прямо сейчас?</b>"
-    ]
-    await msg.answer(chr(10).join(msg_parts), reply_markup=kb, parse_mode="HTML")
+    await msg.answer(
+        f"📦 <b>Обнаружен {type_title}:</b> <code>{html.escape(file_name)}</code>\n"
+        f"📊 <b>Размер:</b> <code>{round(doc.file_size / 1024, 1)} КБ</code>\n"
+        "━━━━━━━━━━━━━━━━━━\n"
+        "📝 <b>Что нового / Список изменений:</b>\n"
+        f"{html.escape(changelog_text)}\n"
+        "━━━━━━━━━━━━━━━━━━\n"
+        "<b>Применить обновление прямо сейчас?</b>",
+        reply_markup=kb,
+        parse_mode="HTML"
+    )
 
 @router.callback_query(F.data == "apply_update")
 async def cb_apply_update(call: types.CallbackQuery, bot: Bot):
@@ -2419,69 +2421,3 @@ async def cb_execute_wipe_db(call: types.CallbackQuery):
     ])
     await send_or_edit_panel_message(call, text, kb)
     await call.answer("База данных успешно очищена!", show_alert=True)
-
-
-# --- АВТОМАТИЧЕСКОЕ ОБНОВЛЕНИЕ С GITHUB В 1 КЛИК ПО КНОПКЕ ---
-@router.callback_query(F.data == "adm_btn_git_update")
-@router.message(F.chat.type == "private", Command("git_update"))
-async def handle_git_update(event: types.CallbackQuery | types.Message, bot: Bot):
-    uid = event.from_user.id
-    if uid != OWNER_ID:
-        if isinstance(event, types.CallbackQuery):
-            return await event.answer("⛔ Доступно исключительно владельцу проекта!", show_alert=True)
-        return
-
-    status_msg = await (event.message.answer if isinstance(event, types.CallbackQuery) else event.answer)(
-        "⏳ <b>Связываюсь с GitHub и запрашиваю обновления (git pull)...</b>",
-        parse_mode="HTML"
-    )
-
-    import asyncio, os, sys
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-    try:
-        git_dir = os.path.join(base_dir, ".git")
-        if not os.path.exists(git_dir):
-            proc = await asyncio.create_subprocess_shell(
-                "git init && git branch -M main && git remote remove origin 2>/dev/null; git remote add origin https://github.com/shizisharks-cmd/NemosTrade.git && git fetch origin main && git reset --hard origin/main",
-                cwd=base_dir,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
-        else:
-            proc = await asyncio.create_subprocess_shell(
-                "git fetch origin main && git reset --hard origin/main",
-                cwd=base_dir,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
-        stdout, stderr = await proc.communicate()
-        out_str = stdout.decode("utf-8", errors="ignore").strip()
-        err_str = stderr.decode("utf-8", errors="ignore").strip()
-
-        if "Already up to date" in out_str or "Уже обновлено" in out_str:
-            return await status_msg.edit_text(
-                "✅ <b>Установлена самая актуальная версия!</b>\n<i>Новых изменений на GitHub не обнаружено.</i>",
-                parse_mode="HTML"
-            )
-
-        if proc.returncode != 0 and not out_str:
-            raise Exception(err_str or "Команда git pull завершилась с ошибкой.")
-
-        await status_msg.edit_text(
-            f"✅ <b>Файлы успешно обновлены с GitHub!</b>\n"
-            f"<code>{html.escape(out_str[:300])}</code>\n\n"
-            "🚀 <b>Перезапуск бота...</b>\n<i>Через 3 секунды бот вернётся в строй.</i>",
-            parse_mode="HTML"
-        )
-
-        await bot.session.close()
-        await asyncio.sleep(1.0)
-        os.execv(sys.executable, [sys.executable, "main.py"])
-
-    except Exception as e:
-        await status_msg.edit_text(
-            f"❌ <b>Ошибка обновления с GitHub:</b>\n<code>{html.escape(str(e))}</code>\n\n"
-            "<i>Убедитесь, что сервер Wispbyte привязан к репозиторию GitHub.</i>",
-            parse_mode="HTML"
-        )
